@@ -185,8 +185,11 @@ jobs:
       # Fails the job on any known-vulnerable dependency. If that is too strict
       # for your release cadence, add --ignore-vuln GHSA-xxxx with an expiry
       # note rather than dropping the check.
+      # Audit the lockfile, not the environment: the lockfile is what the image
+      # installs, and `--strict` against an environment always fails here
+      # because the project installs itself editable and is not on PyPI.
       - name: Audit dependencies
-        run: pip-audit --strict --desc
+        run: pip-audit --strict --desc -r requirements.lock
 
       - name: Verify the lockfile is current
         run: |
@@ -209,8 +212,11 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "0"  # report, do not block; triage in the Security tab
 
+      # Guarded on the file existing: when an earlier step fails, the scan is
+      # skipped and an unguarded `if: always()` upload fails on a missing file,
+      # masking the real error.
       - name: Upload Trivy results
-        if: always()
+        if: always() && hashFiles('trivy.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy.sarif

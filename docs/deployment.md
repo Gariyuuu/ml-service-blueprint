@@ -1,12 +1,11 @@
 # Deployment
 
-> **Verification status.** Everything on this page below the container section —
-> configuration, registry strategy, probes, observability wiring — is exercised by
-> the test suite and `make golden-path`. **The container itself is not.** Docker
-> was unavailable on the machine this release was built on, so the `Dockerfile`
-> and `tests/container/` have never been executed. They are unverified, not known
-> to be broken. Run `make train-promote && make docker-build && make docker-smoke`
-> on a Docker-enabled machine before relying on them.
+> **Verification status.** The container is built and smoke-tested by the
+> `container` job in CI on a Docker-enabled runner, which asserts it boots,
+> reports ready, serves a prediction, and runs non-root. It is *not* exercised
+> locally on a machine without Docker: `pytest` and `make golden-path` both
+> report that step as SKIP with the reason. Reproduce it yourself with
+> `make train-promote && make docker-build && make docker-smoke`.
 
 ## Container
 

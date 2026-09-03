@@ -1,5 +1,7 @@
 # ML Service Blueprint
 
+[![CI](https://github.com/Gariyuuu/ml-service-blueprint/actions/workflows/ci.yml/badge.svg)](https://github.com/Gariyuuu/ml-service-blueprint/actions/workflows/ci.yml)
+
 A reusable GitHub template for taking a machine-learning model from training to a
 **validated production service**.
 
@@ -110,29 +112,29 @@ was unavailable.
 | Drift hooks: sink, detector, fail-open | yes | yes | |
 | Test suite, ruff, strict mypy, package build | yes | yes | |
 | `make golden-path` | yes | yes | 15 passed, 0 failed, 1 skipped |
-| **Dockerfile and container smoke tests** | **yes** | **NO — pending** | **Docker is not installed on the machine this was built on. The image has never been built and the container tests have never run.** |
+| **Dockerfile and container smoke tests** | yes | **yes — in CI** | Docker is unavailable on the author's machine, so this is verified by the `container` CI job on a Docker-enabled runner: the image builds, boots non-root, becomes ready, and serves a prediction. Locally it still reports SKIP. |
 
-### The Docker gap, precisely
+### Where the container is verified
 
-`Dockerfile`, `tests/container/test_container_smoke.py`, and the golden path's
-container step are written but **have never been executed**. They are not known
-to be broken; they are unverified, which is a different and weaker claim.
-
-Both the test suite and the golden path detect the missing daemon and report
-`SKIP` with the reason, rather than passing vacuously:
+Docker is not installed on the author's machine, so `make golden-path` and
+`pytest` both report the container step as `SKIP` with the reason, rather than
+passing vacuously:
 
 ```
 Container
   SKIP image builds, boots, and serves    docker is not installed on this machine
 ```
 
-On a Docker-enabled machine, this is the command that closes the gap:
+The `container` job in CI does run it, on a Docker-enabled runner: it trains and
+promotes a model, builds the image, and runs `tests/container/`, which asserts
+the container boots, reports ready, serves a prediction, and runs as a non-root
+uid. That job is green — see the CI badge above.
+
+To reproduce locally on a machine with Docker:
 
 ```bash
 make train-promote && make docker-build && make docker-smoke
 ```
-
-Update this table once it passes.
 
 ---
 

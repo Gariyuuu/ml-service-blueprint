@@ -18,7 +18,13 @@ classifiers = [
 ]
 
 dependencies = [
-  "fastapi>=0.115,<0.120",
+  "fastapi>=0.115,<1",
+  # starlette arrives transitively via fastapi, but is floored explicitly here:
+  # 0.48.x carries eight known advisories, including a FileResponse Range-header
+  # ReDoS and Host-header URL-reconstruction flaws. Pinning the floor at the
+  # first fully-patched release stops a resolver from quietly selecting an old
+  # one. Re-check with `make audit` before relaxing it.
+  "starlette>=1.3.1,<2",
   "uvicorn[standard]>=0.30,<0.36",
   "pydantic>=2.7,<3",
   "pydantic-settings>=2.3,<3",

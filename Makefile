@@ -121,8 +121,8 @@ coverage: ## Run tests with a coverage report
 	$(BIN)/pytest --cov --cov-report=term-missing --cov-report=xml
 
 .PHONY: audit
-audit: ## Check installed dependencies for known vulnerabilities
-	$(BIN)/pip-audit --strict --desc
+audit: ## Check the locked runtime dependencies for known vulnerabilities
+	$(BIN)/pip-audit --strict --desc -r requirements.lock
 
 .PHONY: check
 check: lint typecheck test ## lint + typecheck + test
