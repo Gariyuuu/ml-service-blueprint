@@ -27,6 +27,15 @@ The runtime contains: Python 3.11 slim, the locked runtime dependencies, the
 It does not contain: dev, test, or load-test dependencies; the training data;
 the test suite; the docs; the OpenTelemetry extra (add it if you enable tracing).
 
+**Measured size: 530 MB** (CI, linux/amd64, commit 96292b4). That is not small,
+and it is not going to get much smaller: scipy, pandas, scikit-learn, and numpy
+account for roughly 190 MB unpacked between them, before the Python base image.
+If image size matters more to you than keeping the training and serving stacks
+identical, the lever with real leverage is exporting the model to ONNX and
+serving it with `onnxruntime` instead of scikit-learn — at the cost of the
+training/serving parity this blueprint is built around. Trimming layers will not
+get you there.
+
 ### Non-root
 
 ```dockerfile
