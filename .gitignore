@@ -61,3 +61,7 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local deploy config for the demo instance. The template stays host-neutral;
+# see docs/deployment.md for the general container contract.
+/fly.toml
