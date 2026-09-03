@@ -85,7 +85,11 @@ known-first-party = ["mlservice"]
 "scripts/verify_golden_path.py" = ["ARG001", "ARG002", "N818"]
 
 [tool.mypy]
-python_version = "3.11"
+# No `python_version` pin on purpose. Pinning it to 3.11 while running under a
+# newer interpreter makes mypy read that interpreter's stubs at the older
+# language level, and it rejects PEP 695 `type` statements in numpy's stubs.
+# Unset, mypy checks against whichever interpreter runs it, which is what the
+# CI matrix is for.
 files = ["src/mlservice", "scripts"]
 strict = true
 warn_unreachable = true
