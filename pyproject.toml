@@ -69,6 +69,13 @@ src = ["src", "tests", "scripts"]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "ARG", "PTH", "RET", "TID", "N"]
 ignore = ["B008"]  # FastAPI Depends() in defaults is idiomatic
 
+[tool.ruff.lint.isort]
+# Pin the first-party package explicitly. Left to inference, ruff classifies
+# `mlservice` differently depending on what is present in the working directory,
+# so lint passes locally and fails on a clean checkout (or in CI). Naming it here
+# makes import grouping deterministic everywhere.
+known-first-party = ["mlservice"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ARG001", "ARG002"]
 # FastAPI exception handlers must accept (request, exc) whether or not they use them.

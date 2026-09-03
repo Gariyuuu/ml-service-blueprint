@@ -3,13 +3,13 @@ __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
-dist/
-build/
+/dist/
+/build/
 
 # Virtual environments
 .venv/
 venv/
-env/
+/env/
 .python-version
 
 # Tooling caches
@@ -30,10 +30,14 @@ htmlcov/
 
 # Generated data. The dataset is reproducible: `make data` rebuilds it byte for
 # byte from scikit-learn's bundled copy, so it does not belong in git.
-data/
+#
+# NOTE: the generated-output patterns below are ROOT-ANCHORED (a leading "/") on
+# purpose. Unanchored, `registry/` also matches `src/mlservice/registry/`, and
+# git will silently keep a source package out of your commits.
+/data/
 
 # Runtime output: drift records, load-test reports.
-var/
+/var/
 
 # The model registry.
 #
@@ -41,7 +45,7 @@ var/
 # they grow without bound, and git is not a model store. The blueprint keeps it
 # ignored and expects the registry to be a mounted volume, an object-store sync,
 # or baked into the image at build time. See docs/deployment.md.
-registry/
+/registry/
 
 # Loose model files outside the registry, usually a stray experiment.
 *.joblib

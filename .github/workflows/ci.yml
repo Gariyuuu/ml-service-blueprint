@@ -200,7 +200,7 @@ jobs:
             || { echo "::error::requirements.lock is stale; run 'make lock'"; exit 1; }
 
       - name: Scan the filesystem for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: fs
           scan-ref: .
