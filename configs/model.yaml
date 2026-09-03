@@ -1,0 +1,19 @@
+# Model definition.
+#
+# `estimator` is a name resolved by mlservice.training.model_factory, not an
+# import path — a config file can never cause arbitrary code to be imported.
+# Run `mlservice estimators` for the accepted values.
+
+name: tabular-classifier
+estimator: gradient_boosting
+
+hyperparameters:
+  n_estimators: 200
+  learning_rate: 0.05
+  max_depth: 3
+  subsample: 0.9
+  min_samples_leaf: 5
+
+# Wrap the estimator in sigmoid probability calibration. Worth enabling when the
+# scores are consumed as probabilities rather than only ranked.
+calibrate: false

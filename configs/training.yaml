@@ -1,0 +1,42 @@
+# Training experiment configuration.
+#
+# This file is versioned with the code and snapshotted into every artifact's
+# metadata, so a model's exact training settings are always recoverable.
+
+seed: 20240101
+
+data:
+  path: data/raw/breast_cancer.csv
+  target: target
+  positive_label: 1
+  drop_columns: []
+
+split:
+  # Fractions of the ORIGINAL frame. train = 1 - test_size - validation_size.
+  test_size: 0.2
+  validation_size: 0.2
+  stratify: true
+  # Changing this seed reshuffles every partition and invalidates metric
+  # comparisons against previously registered versions. Treat it as immutable.
+  random_state: 20240101
+
+preprocessing:
+  numeric_imputation: median
+  categorical_imputation: most_frequent
+  scale_numeric: true
+  one_hot_min_frequency: null
+
+# Fallback when training runs with --fixed-threshold. With --tune-threshold
+# (the default) the threshold is selected on the validation split instead.
+decision_threshold: 0.5
+
+# A run that misses any gate still writes its metrics and model card, but the
+# registry refuses to register it. Set these from a known-good baseline.
+gates:
+  min_roc_auc: 0.95
+  min_f1: 0.90
+  min_precision: null
+  min_recall: null
+
+registry_root: registry
+model_card_template: model_cards/TEMPLATE.md

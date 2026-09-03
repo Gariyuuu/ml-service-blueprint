@@ -1,0 +1,103 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mlservice"
+version = "0.1.0"
+description = "Blueprint for taking a tabular ML model from training to a validated production service."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "ML Service Blueprint" }]
+keywords = ["machine-learning", "mlops", "fastapi", "model-registry", "template"]
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Intended Audience :: Developers",
+]
+
+dependencies = [
+  "fastapi>=0.115,<0.120",
+  "uvicorn[standard]>=0.30,<0.36",
+  "pydantic>=2.7,<3",
+  "pydantic-settings>=2.3,<3",
+  "pyyaml>=6.0,<7",
+  "numpy>=1.26,<3",
+  "pandas>=2.2,<3",
+  "scikit-learn>=1.4,<2",
+  "joblib>=1.4,<2",
+  "prometheus-client>=0.20,<1",
+  "typer>=0.12,<0.20",
+]
+
+[project.optional-dependencies]
+otel = [
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-instrumentation-fastapi>=0.46b0",
+  "opentelemetry-exporter-otlp-proto-http>=1.25",
+]
+loadtest = ["locust>=2.29,<3"]
+dev = [
+  "pytest>=8.2,<9",
+  "pytest-cov>=5.0,<8",
+  "httpx>=0.27,<1",
+  "ruff>=0.6,<0.15",
+  "mypy>=1.10,<2",
+  "types-PyYAML>=6.0",
+  "pandas-stubs>=2.2",
+  "pip-audit>=2.7,<3",
+  "build>=1.2,<2",
+]
+
+[project.scripts]
+mlservice = "mlservice.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/your-org/ml-service-blueprint"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlservice"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "ARG", "PTH", "RET", "TID", "N"]
+ignore = ["B008"]  # FastAPI Depends() in defaults is idiomatic
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ARG001", "ARG002"]
+# FastAPI exception handlers must accept (request, exc) whether or not they use them.
+"src/mlservice/serving/errors.py" = ["ARG001"]
+# Golden-path steps share one Callable[[Context], ...] signature; not all use ctx.
+# StepSkipped is control flow, not an error, so the Error suffix would misname it.
+"scripts/verify_golden_path.py" = ["ARG001", "ARG002", "N818"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/mlservice", "scripts"]
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "joblib.*", "prometheus_client.*", "opentelemetry.*", "locust.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "slow: trains a model or otherwise takes multiple seconds",
+  "container: requires a working Docker daemon",
+]
+filterwarnings = ["error::DeprecationWarning:mlservice.*"]
+
+[tool.coverage.run]
+source = ["src/mlservice"]
+branch = true

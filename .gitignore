@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.python-version
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# Local secrets and settings.
+# Everything .env* is ignored; the committed example is the one exception.
+.env*
+!.env.example
+
+# Generated data. The dataset is reproducible: `make data` rebuilds it byte for
+# byte from scikit-learn's bundled copy, so it does not belong in git.
+data/
+
+# Runtime output: drift records, load-test reports.
+var/
+
+# The model registry.
+#
+# Committed by default is WRONG for most teams: joblib artifacts are binary,
+# they grow without bound, and git is not a model store. The blueprint keeps it
+# ignored and expects the registry to be a mounted volume, an object-store sync,
+# or baked into the image at build time. See docs/deployment.md.
+registry/
+
+# Loose model files outside the registry, usually a stray experiment.
+*.joblib
+*.pkl
+*.pickle
+*.onnx
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

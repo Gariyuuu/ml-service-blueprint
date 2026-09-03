@@ -1,0 +1,32 @@
+# Reference values for the service and observability settings.
+#
+# The service does NOT read this file: those settings are environment-first
+# (see .env.example), because they change per deployment while training config
+# is versioned with the experiment. This file documents the full surface.
+
+service:
+  MLSERVICE_APP_NAME: ml-service-blueprint
+  MLSERVICE_ENVIRONMENT: prod            # local | dev | staging | prod
+  MLSERVICE_HOST: 0.0.0.0
+  MLSERVICE_PORT: 8000
+  MLSERVICE_REGISTRY_ROOT: /app/registry
+  MLSERVICE_MODEL_NAME: tabular-classifier
+  MLSERVICE_MODEL_STAGE: production      # ignored when MODEL_VERSION is set
+  MLSERVICE_MODEL_VERSION: null          # pin an exact version for a canary
+  MLSERVICE_MAX_BATCH_SIZE: 1000
+  MLSERVICE_FAIL_FAST_ON_MISSING_MODEL: true
+
+observability:
+  MLSERVICE_OBS_LOG_LEVEL: INFO
+  MLSERVICE_OBS_LOG_FORMAT: json         # 'console' for local development
+  MLSERVICE_OBS_LOG_INCLUDE_REQUEST_BODY: false   # inference inputs are often PII
+  MLSERVICE_OBS_METRICS_ENABLED: true
+  MLSERVICE_OBS_METRICS_PATH: /metrics
+  MLSERVICE_OBS_PREDICTION_HISTOGRAM_ENABLED: true
+  MLSERVICE_OBS_TRACING_ENABLED: false   # requires the 'otel' extra
+  MLSERVICE_OBS_OTLP_ENDPOINT: null
+  MLSERVICE_OBS_TRACE_SAMPLE_RATIO: 0.1
+  MLSERVICE_OBS_DRIFT_ENABLED: false
+  MLSERVICE_OBS_DRIFT_SINK: null         # null | logging | jsonl
+  MLSERVICE_OBS_DRIFT_SINK_PATH: var/drift/predictions.jsonl
+  MLSERVICE_OBS_DRIFT_SAMPLE_RATIO: 1.0

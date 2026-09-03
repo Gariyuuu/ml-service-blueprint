@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, typecheck, test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        # The full history is needed for provenance capture to record a real
+        # commit; a shallow clone still works, it just records less.
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,loadtest]'
+
+      - name: Lint
+        run: |
+          ruff check --output-format=github .
+          ruff format --check .
+
+      - name: Typecheck
+        run: mypy
+
+      - name: Test
+        run: pytest -m "not container" --cov --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          retention-days: 7
+
+  golden-path:
+    name: Golden path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e '.[dev,loadtest]'
+
+      # Docker is verified in its own job below against a registry this job
+      # produces; skipping it here keeps the golden path fast and honest about
+      # what it actually ran.
+      - name: Run the golden path
+        run: .venv/bin/python scripts/verify_golden_path.py --skip-docker --json golden-path.json
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-path-report
+          path: golden-path.json
+          retention-days: 14
+
+  package:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Validate metadata
+        run: twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  container:
+    name: Container build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      # The image bakes in registry/, so a model has to exist before the build.
+      - name: Train and promote a model
+        run: |
+          python scripts/make_dataset.py
+          mlservice train --promote-to production
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ml-service-blueprint:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the container
+        run: pytest tests/container -m container -v
+
+      - name: Report image size
+        run: docker image inspect ml-service-blueprint:ci --format '{{.Size}}' | numfmt --to=iec
+
+  security:
+    name: Dependency and secret scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      # Fails the job on any known-vulnerable dependency. If that is too strict
+      # for your release cadence, add --ignore-vuln GHSA-xxxx with an expiry
+      # note rather than dropping the check.
+      - name: Audit dependencies
+        run: pip-audit --strict --desc
+
+      - name: Verify the lockfile is current
+        run: |
+          pipx install uv || pip install uv
+          cp requirements.lock requirements.lock.bak
+          uv pip compile pyproject.toml --generate-hashes \
+            --python-version 3.11 --python-platform x86_64-unknown-linux-gnu \
+            -o requirements.lock.new
+          # Compare only the pinned requirements; uv's banner and our header differ.
+          diff <(grep -v '^#' requirements.lock.bak) <(grep -v '^#' requirements.lock.new) \
+            || { echo "::error::requirements.lock is stale; run 'make lock'"; exit 1; }
+
+      - name: Scan the filesystem for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"  # report, do not block; triage in the Security tab
+
+      - name: Upload Trivy results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
